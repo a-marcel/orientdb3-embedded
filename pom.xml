@@ -21,10 +21,9 @@
 			<version>2.11.0</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/com.orientechnologies/orientdb-graphdb -->
 		<dependency>
 			<groupId>com.orientechnologies</groupId>
-			<artifactId>orientdb-graphdb</artifactId>
+			<artifactId>orientdb-server</artifactId>
 			<version>3.0.2</version>
 			<scope>test</scope>
 		</dependency>

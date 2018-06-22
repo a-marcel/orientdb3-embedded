@@ -33,7 +33,6 @@ import com.orientechnologies.orient.server.config.OServerNetworkListenerConfigur
 import com.orientechnologies.orient.server.config.OServerNetworkProtocolConfiguration;
 import com.orientechnologies.orient.server.config.OServerUserConfiguration;
 
-
 public class RemoteStoringTest {
 	protected static final Logger logger = LogManager.getLogger(RemoteStoringTest.class);
 	static int httpPort;
@@ -164,10 +163,12 @@ public class RemoteStoringTest {
 	public void test() {
 
 		GraphTraversalSource g = graph.traversal();
-		
+
 		/*
 		 * Set Breakpoint here and copy the studio url from the console
 		 */
+
+		logger.info("Vertex count: {}", g.V().count().next());
 
 		g.V().has("key", ROOT_KEY).forEachRemaining(v -> logger.info("Found Vertex: {}", v));
 	}
