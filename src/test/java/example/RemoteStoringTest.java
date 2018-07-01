@@ -1,5 +1,7 @@
 package example;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
@@ -92,12 +94,10 @@ public class RemoteStoringTest {
 		config.network = new OServerNetworkConfiguration();
 		config.network.protocols = new ArrayList<>();
 
-		OServerNetworkProtocolConfiguration binProtocol = new OServerNetworkProtocolConfiguration("binary",
-				"com.orientechnologies.orient.server.network.protocol.binary.ONetworkProtocolBinary");
+		OServerNetworkProtocolConfiguration binProtocol = new OServerNetworkProtocolConfiguration("binary", "com.orientechnologies.orient.server.network.protocol.binary.ONetworkProtocolBinary");
 		config.network.protocols.add(binProtocol);
 
-		OServerNetworkProtocolConfiguration httpProtocol = new OServerNetworkProtocolConfiguration("http",
-				"com.orientechnologies.orient.server.network.protocol.http.ONetworkProtocolHttpDb");
+		OServerNetworkProtocolConfiguration httpProtocol = new OServerNetworkProtocolConfiguration("http", "com.orientechnologies.orient.server.network.protocol.http.ONetworkProtocolHttpDb");
 		config.network.protocols.add(httpProtocol);
 
 		config.network.listeners = new ArrayList<>();
@@ -119,10 +119,8 @@ public class RemoteStoringTest {
 		httpListener.commands[0].pattern = "GET|www GET|studio/ GET| GET|*.htm GET|*.html GET|*.xml GET|*.jpeg GET|*.jpg GET|*.png GET|*.gif GET|*.js GET|*.css GET|*.swf GET|*.ico GET|*.txt GET|*.otf GET|*.pjs GET|*.svg";
 
 		httpListener.commands[0].parameters = new OServerEntryConfiguration[2];
-		httpListener.commands[0].parameters[0] = new OServerEntryConfiguration("http.cache:*.htm *.html",
-				"Cache-Control: no-cache, no-store, max-age=0, must-revalidate\r\nPragma: no-cache");
-		httpListener.commands[0].parameters[1] = new OServerEntryConfiguration("http.cache:default",
-				"Cache-Control: max-age=120");
+		httpListener.commands[0].parameters[0] = new OServerEntryConfiguration("http.cache:*.htm *.html", "Cache-Control: no-cache, no-store, max-age=0, must-revalidate\r\nPragma: no-cache");
+		httpListener.commands[0].parameters[1] = new OServerEntryConfiguration("http.cache:default", "Cache-Control: max-age=120");
 
 		config.network.listeners.add(httpListener);
 
@@ -160,17 +158,43 @@ public class RemoteStoringTest {
 	}
 
 	@Test
-	public void test() {
+	public void test() throws Exception {
 
-		GraphTraversalSource g = graph.traversal();
+		GraphTraversalSource g = null;
 
-		/*
-		 * Set Breakpoint here and copy the studio url from the console
-		 */
+		try {
+			g = graph.traversal();
 
-		logger.info("Vertex count: {}", g.V().count().next());
+			/*
+			 * Set Breakpoint here and copy the studio url from the console
+			 */
 
-		g.V().has("key", ROOT_KEY).forEachRemaining(v -> logger.info("Found Vertex: {}", v));
+			logger.info("Vertex count: {}", g.V().count().next());
+
+			g.V().has("key", ROOT_KEY).forEachRemaining(v -> logger.info("Found Vertex: {}", v));
+		} finally {
+			if (g != null) {
+				g.close();
+			}
+		}
+	}
+
+	@Test
+	public void testGremlinProperties() throws Exception {
+		GraphTraversalSource g = null;
+
+		try {
+			g = graph.traversal();
+
+			g.V().has("key", ROOT_KEY).property("testproperty", "testvalue");
+
+			g.V().has("key", ROOT_KEY).forEachRemaining(e -> assertEquals("testvalue", e.property("testproperty")));
+
+		} finally {
+			if (g != null) {
+				g.close();
+			}
+		}
 	}
 
 	@After
