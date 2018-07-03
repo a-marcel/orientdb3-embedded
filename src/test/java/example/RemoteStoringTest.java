@@ -1,6 +1,8 @@
 package example;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.net.URL;
@@ -12,6 +14,7 @@ import java.util.logging.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.orientdb.OrientGraph;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -202,9 +205,9 @@ public class RemoteStoringTest {
 		try {
 			g = graph.traversal();
 
-			g.V().has("key", ROOT_KEY).property("testproperty", "testvalue");
+			g.V().has("key", ROOT_KEY).property("testproperty", "testvalue").toList();
 
-			g.V().has("key", ROOT_KEY).forEachRemaining(e -> assertEquals("testvalue", e.property("testproperty")));
+			g.V().has("key", ROOT_KEY).forEachRemaining(e -> assertTrue(e.property("testproperty").isPresent()));
 
 		} finally {
 			if (g != null) {
