@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -24,7 +25,15 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import com.orientechnologies.orient.core.db.ODatabasePool;
+import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.db.ODatabaseType;
+import com.orientechnologies.orient.core.db.OrientDB;
+import com.orientechnologies.orient.core.db.OrientDBConfig;
+import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE;
+import com.orientechnologies.orient.core.record.OVertex;
 import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.OServerMain;
 import com.orientechnologies.orient.server.config.OServerCommandConfiguration;
@@ -51,6 +60,8 @@ public class RemoteStoringTest {
 
 	private static UUID ROOT_KEY = UUID.randomUUID();
 	private static UUID LINK_KEY = UUID.randomUUID();
+
+	ODatabasePool pool;
 
 	@BeforeClass
 	public static void initSystemViaConfig() throws Exception {
@@ -155,6 +166,11 @@ public class RemoteStoringTest {
 		root2.addEdge("contains", root);
 
 		graph.commit();
+
+		OrientDB orientDB = new OrientDB(serverUrl, USERNAME, PASSWORD, OrientDBConfig.defaultConfig());
+
+		pool = new ODatabasePool(orientDB, "temp", USERNAME, PASSWORD);
+
 	}
 
 	@Test
@@ -189,6 +205,38 @@ public class RemoteStoringTest {
 			g.V().has("key", ROOT_KEY).property("testproperty", "testvalue");
 
 			g.V().has("key", ROOT_KEY).forEachRemaining(e -> assertEquals("testvalue", e.property("testproperty")));
+
+		} finally {
+			if (g != null) {
+				g.close();
+			}
+		}
+	}
+
+	@Test
+	public void testNullDocumentClass() throws Exception {
+		try (ODatabaseSession db = pool.acquire()) {
+			logger.info("Create OrientDbVertex Class {}", "testVertex");
+			OClass vertexClass = db.createClass("testVertex", "V");
+			vertexClass.createProperty("key", OType.STRING).createIndex(INDEX_TYPE.UNIQUE);
+
+			db.createEdgeClass("testEdge");
+
+			OVertex record = db.newVertex("testVertex");
+			record.setProperty("key", "test");
+			record.save();
+		}
+
+		GraphTraversalSource g = null;
+
+		try {
+			g = graph.traversal();
+
+			Map<Object, Long> data = g.V().has("key", "test")
+
+					.repeat(__.in("testEdge").simplePath()).emit()
+
+					.path().by(__.label()).groupCount().next();
 
 		} finally {
 			if (g != null) {
