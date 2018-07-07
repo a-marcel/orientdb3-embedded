@@ -25,7 +25,7 @@
 		<dependency>
 			<groupId>com.orientechnologies</groupId>
 			<artifactId>orientdb-server</artifactId>
-			<version>3.0.2</version>
+			<version>3.0.3</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -33,20 +33,20 @@
 		<dependency>
 			<groupId>com.orientechnologies</groupId>
 			<artifactId>orientdb-gremlin</artifactId>
-			<version>3.0.2</version>
+			<version>3.0.3</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.orientechnologies</groupId>
 			<artifactId>orientdb-client</artifactId>
-			<version>3.0.2</version>
+			<version>3.0.3</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/com.orientechnologies/orientdb-studio -->
 		<dependency>
 			<groupId>com.orientechnologies</groupId>
 			<artifactId>orientdb-studio</artifactId>
-			<version>3.0.2</version>
+			<version>3.0.3</version>
 			<scope>test</scope>
 		</dependency>
 

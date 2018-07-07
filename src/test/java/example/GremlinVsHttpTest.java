@@ -100,7 +100,7 @@ public class GremlinVsHttpTest {
 	public static TemporaryFolder folder = new TemporaryFolder();
 
 	static OServer server;
-	static OrientGraph graph;
+	OrientGraph graph;
 
 	private static String USERNAME = "root";
 	private static String PASSWORD = "123";
@@ -207,7 +207,7 @@ public class GremlinVsHttpTest {
 		}
 		server.createDatabase("temp", ODatabaseType.PLOCAL, null);
 
-		graph = OrientGraph.open(serverUrl, USERNAME, PASSWORD);
+		OrientGraph graph = OrientGraph.open(serverUrl, USERNAME, PASSWORD);
 
 		graph.begin();
 
@@ -222,11 +222,27 @@ public class GremlinVsHttpTest {
 		link.addEdge("contains", root);
 
 		graph.commit();
+		graph.close();
 
 		OrientDB orientDB = new OrientDB(serverUrl, USERNAME, PASSWORD, OrientDBConfig.defaultConfig());
 
 		pool = new ODatabasePool(orientDB, "temp", USERNAME, PASSWORD);
+	}
+	
+	
+	@Before
+	public void initConnection() {		
+		String serverUrl = String.format("remote:127.0.0.1:%s/temp", binaryPort);
 
+		graph = OrientGraph.open(serverUrl, USERNAME, PASSWORD);
+	}
+	
+	@After
+	public void closeConnection() {
+		if (null != graph) {
+			graph.close();
+			graph = null;
+		}
 	}
 
 	@Test
@@ -257,9 +273,11 @@ public class GremlinVsHttpTest {
 	public void testGremlinHttpApi() throws ClientProtocolException, IOException {
 
 		CloseableHttpClient client = createClient(new HttpHost("localhost", httpPort, "http"), USERNAME, PASSWORD);
+		
+		String query = String.format("g.V().has('key', '%s').repeat(out().simplePath()).until(has('key', '%s')).path().unfold()", LINK2_KEY.toString(), ROOT_KEY.toString());
 
 		HashMap<String, String> command = new HashMap<String, String>();
-		command.put("command", String.format("g.V().has('key', '%s').repeat(out().simplePath()).until(has('key', '%s')).path().unfold().toList()", LINK2_KEY.toString(), ROOT_KEY.toString()));
+		command.put("command", query);
 		// command.put("command", String.format("g.V().has('key', '%s').repeat(__.out().simplePath())", LINK_KEY.toString()));
 
 		String commandJson = mapper.writeValueAsString(command);
@@ -283,7 +301,40 @@ public class GremlinVsHttpTest {
 		assertTrue(json.containsKey("result"));
 
 		assertNotEquals("[]", json.get("result").toString());
+	}
+	
+	
+	@Test
+	public void testGroupCount() throws ClientProtocolException, IOException {
+		CloseableHttpClient client = createClient(new HttpHost("localhost", httpPort, "http"), USERNAME, PASSWORD);
 
+		// Query from the gitHub Ticket
+		String query = String.format("g.V().has('key', '%s').repeat(__.in(\"contains\").simplePath()).emit().path().by(label()).groupCount().values()", ROOT_KEY.toString());
+		
+		// Java Api Working Query - but without results
+//		String query = String.format("g.V().has('key', '%s').repeat(__.in(\"contains\").simplePath()).emit().path().by(label()).groupCount().next()", ROOT_KEY.toString());
+
+		
+
+		HashMap<String, String> command = new HashMap<String, String>();
+		command.put("command", query);
+		// command.put("command", String.format("g.V().has('key', '%s').repeat(__.out().simplePath())", LINK_KEY.toString()));
+
+		String commandJson = mapper.writeValueAsString(command);
+
+		HttpPost post = new HttpPost(String.format("http://%s:%s/command/temp/gremlin", "localhost", httpPort));
+		post.setEntity(new StringEntity(commandJson, ContentType.APPLICATION_JSON));
+
+		CloseableHttpResponse response = client.execute(post, this.context);
+
+		assertNotNull(response);
+
+		HttpEntity responseEntity = response.getEntity();
+
+		String entity = EntityUtils.toString(responseEntity);
+
+		assertNotNull(entity);
+		
 	}
 
 	CloseableHttpClient createClient(HttpHost httpHost, String user, String password) {
