@@ -157,10 +157,12 @@ public class GremlinVsHttpTest {
 		config.network = new OServerNetworkConfiguration();
 		config.network.protocols = new ArrayList<>();
 
-		OServerNetworkProtocolConfiguration binProtocol = new OServerNetworkProtocolConfiguration("binary", "com.orientechnologies.orient.server.network.protocol.binary.ONetworkProtocolBinary");
+		OServerNetworkProtocolConfiguration binProtocol = new OServerNetworkProtocolConfiguration("binary",
+				"com.orientechnologies.orient.server.network.protocol.binary.ONetworkProtocolBinary");
 		config.network.protocols.add(binProtocol);
 
-		OServerNetworkProtocolConfiguration httpProtocol = new OServerNetworkProtocolConfiguration("http", "com.orientechnologies.orient.server.network.protocol.http.ONetworkProtocolHttpDb");
+		OServerNetworkProtocolConfiguration httpProtocol = new OServerNetworkProtocolConfiguration("http",
+				"com.orientechnologies.orient.server.network.protocol.http.ONetworkProtocolHttpDb");
 		config.network.protocols.add(httpProtocol);
 
 		config.network.listeners = new ArrayList<>();
@@ -182,8 +184,10 @@ public class GremlinVsHttpTest {
 		httpListener.commands[0].pattern = "GET|www GET|studio/ GET| GET|*.htm GET|*.html GET|*.xml GET|*.jpeg GET|*.jpg GET|*.png GET|*.gif GET|*.js GET|*.css GET|*.swf GET|*.ico GET|*.txt GET|*.otf GET|*.pjs GET|*.svg";
 
 		httpListener.commands[0].parameters = new OServerEntryConfiguration[2];
-		httpListener.commands[0].parameters[0] = new OServerEntryConfiguration("http.cache:*.htm *.html", "Cache-Control: no-cache, no-store, max-age=0, must-revalidate\r\nPragma: no-cache");
-		httpListener.commands[0].parameters[1] = new OServerEntryConfiguration("http.cache:default", "Cache-Control: max-age=120");
+		httpListener.commands[0].parameters[0] = new OServerEntryConfiguration("http.cache:*.htm *.html",
+				"Cache-Control: no-cache, no-store, max-age=0, must-revalidate\r\nPragma: no-cache");
+		httpListener.commands[0].parameters[1] = new OServerEntryConfiguration("http.cache:default",
+				"Cache-Control: max-age=120");
 
 		config.network.listeners.add(httpListener);
 
@@ -228,15 +232,14 @@ public class GremlinVsHttpTest {
 
 		pool = new ODatabasePool(orientDB, "temp", USERNAME, PASSWORD);
 	}
-	
-	
+
 	@Before
-	public void initConnection() {		
+	public void initConnection() {
 		String serverUrl = String.format("remote:127.0.0.1:%s/temp", binaryPort);
 
 		graph = OrientGraph.open(serverUrl, USERNAME, PASSWORD);
 	}
-	
+
 	@After
 	public void closeConnection() {
 		if (null != graph) {
@@ -259,7 +262,8 @@ public class GremlinVsHttpTest {
 
 			logger.info("Vertex count: {}", g.V().count().next());
 
-			List<Object> data = g.V().has("key", LINK2_KEY.toString()).repeat(__.out().simplePath()).until(__.has("key", ROOT_KEY.toString())).path().unfold().toList();
+			List<Object> data = g.V().has("key", LINK2_KEY.toString()).repeat(__.out().simplePath())
+					.until(__.has("key", ROOT_KEY.toString())).path().unfold().toList();
 
 			assertNotNull(data);
 		} finally {
@@ -273,12 +277,15 @@ public class GremlinVsHttpTest {
 	public void testGremlinHttpApi() throws ClientProtocolException, IOException {
 
 		CloseableHttpClient client = createClient(new HttpHost("localhost", httpPort, "http"), USERNAME, PASSWORD);
-		
-		String query = String.format("g.V().has('key', '%s').repeat(out().simplePath()).until(has('key', '%s')).path().unfold()", LINK2_KEY.toString(), ROOT_KEY.toString());
+
+		String query = String.format(
+				"g.V().has('key', '%s').repeat(out().simplePath()).until(has('key', '%s')).path().unfold()",
+				LINK2_KEY.toString(), ROOT_KEY.toString());
 
 		HashMap<String, String> command = new HashMap<String, String>();
 		command.put("command", query);
-		// command.put("command", String.format("g.V().has('key', '%s').repeat(__.out().simplePath())", LINK_KEY.toString()));
+		// command.put("command", String.format("g.V().has('key',
+		// '%s').repeat(__.out().simplePath())", LINK_KEY.toString()));
 
 		String commandJson = mapper.writeValueAsString(command);
 
@@ -302,23 +309,43 @@ public class GremlinVsHttpTest {
 
 		assertNotEquals("[]", json.get("result").toString());
 	}
-	
-	
+
+	@Test
+	public void testGroupCountNativeGremlin() throws Exception {
+		GraphTraversalSource g = null;
+		try {
+			g = graph.traversal();
+
+			Map<Object, Long> data = g.V().has("key", ROOT_KEY.toString()).repeat(__.in("contains").simplePath()).emit()
+					.path().by(__.label()).groupCount().next();
+
+			assertNotNull(data);
+		} finally {
+			if (g != null) {
+				g.close();
+			}
+		}
+
+	}
+
 	@Test
 	public void testGroupCount() throws ClientProtocolException, IOException {
 		CloseableHttpClient client = createClient(new HttpHost("localhost", httpPort, "http"), USERNAME, PASSWORD);
 
 		// Query from the gitHub Ticket
-		String query = String.format("g.V().has('key', '%s').repeat(__.in(\"contains\").simplePath()).emit().path().by(label()).groupCount().values()", ROOT_KEY.toString());
-		
-		// Java Api Working Query - but without results
-//		String query = String.format("g.V().has('key', '%s').repeat(__.in(\"contains\").simplePath()).emit().path().by(label()).groupCount().next()", ROOT_KEY.toString());
+		String query = String.format(
+				"g.V().has('key', '%s').repeat(__.in(\"contains\").simplePath()).emit().path().by(label()).groupCount().toList()",
+				ROOT_KEY.toString());
 
-		
+		// Java Api Working Query - but without results
+		// String query = String.format("g.V().has('key',
+		// '%s').repeat(__.in(\"contains\").simplePath()).emit().path().by(label()).groupCount().next()",
+		// ROOT_KEY.toString());
 
 		HashMap<String, String> command = new HashMap<String, String>();
 		command.put("command", query);
-		// command.put("command", String.format("g.V().has('key', '%s').repeat(__.out().simplePath())", LINK_KEY.toString()));
+		// command.put("command", String.format("g.V().has('key',
+		// '%s').repeat(__.out().simplePath())", LINK_KEY.toString()));
 
 		String commandJson = mapper.writeValueAsString(command);
 
@@ -335,6 +362,8 @@ public class GremlinVsHttpTest {
 
 		assertNotNull(entity);
 		
+		logger.debug("Test Response: {}", entity);
+
 	}
 
 	CloseableHttpClient createClient(HttpHost httpHost, String user, String password) {
@@ -347,7 +376,8 @@ public class GremlinVsHttpTest {
 			RequestConfig.Builder requestBuilder = RequestConfig.custom();
 			requestBuilder = requestBuilder.setAuthenticationEnabled(true);
 
-			httpclientBuilder.setDefaultRequestConfig(requestBuilder.build()).setDefaultCredentialsProvider(credsProvider);
+			httpclientBuilder.setDefaultRequestConfig(requestBuilder.build())
+					.setDefaultCredentialsProvider(credsProvider);
 
 			AuthCache authCache = new BasicAuthCache();
 			authCache.put(httpHost, new BasicScheme());
